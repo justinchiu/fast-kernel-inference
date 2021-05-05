@@ -1,0 +1,72 @@
+
+The choice of parameterization can have a profound effect on performance, both in terms of accuracy and computational complexity. Recent work in linear-time attention demonstrates that parameterizations other than softmax can yield significant computational benefits while obtaining competitive accuracy \citep{choromanski2020performer,katharopoulos2020lineartransformer,peng2021rfa,shen2018linearattn}. 
+
+We propose to extend the application of kernel parameterizations to the conditional distributions of structured prediction models \citep{song2011kernelbp}.
+We use the following parameterization:
+\begin{equation}
+    \label{eqn:kernel-param}
+    p(b \mid a) \propto \phi(\bw_a)^\top\phi(\bu_b),
+\end{equation}
+where $\phi: \R^d \to \R^n_+$ is the feature map and $\bw_a,\bu_b\in\R^d$ are embeddings of $a$ and $b$.
+The linear interaction between $\phi(\bw_a)$ and $\phi(\bu_b)$ allows for substantial savings in both time and space for marginalization, which we demonstrate in HMMs and PCFGs.
+
+\subsection*{Kernel Hidden Markov Models}
+The cost of marginalization in HMMs stems from the transition distribution, which is a matrix with a number of entries that is quadratic in the number of states.
+Applying the kernel parameterization in Eqn.~\ref{eqn:kernel-param} to the transition distribution allows us to avoid instantiating the full transition matrix during marginalization, reducing the complexity from quadratic to linear in the number of states. We demonstrate kernelized inference on a short example sequence.
+
+Let $\bw_z,\bu_z\in\R^d$ be embeddings for state $z$. The transition distribution is given by
+\begin{equation}
+p(z_t \mid z_{t-1})
+= \frac{\phi(\bw_{z_{t-1}})^\top\phi(\bu_{z_t})}{c(z_{t-1})},
+\end{equation}
+where the scalar normalization term $c(z_{t-1})$ is only a function of $z_{t-1}$, in full:
+$c(z_{t-1}) =\phi(\bw_{z_{t-1}})^\top \sum_{z_t}\phi(\bu_{z_{t}})$.
+
+Given the kernel parameterization, we can then perform marginalization efficiently. We show this for the sequence $x = (x_1,x_2)$:
+\begin{equation}
+\label{eqn:kernel-hmm-inference}
+\begin{aligned}
+&p(x_1,x_2)\\
+&= \sum_{z_1} \frac{\phi(\bw_{z_0})^\top\phi(\bu_{z_1})}{c(z_0)}
+o_1\sum_{z_2}\frac{\phi(\bw_{z_1})^\top\phi(\bu_{z_2})}{c(z_1)}o_2\\
+&= \underbrace{
+    \vphantom{\left(\sum_{z_1} 
+        \frac{o_1}{c(z_1)}\phi(\bu_{z_1})\phi(\bw_{z_1})^\top
+        \right)}
+    \frac{\phi(\bw_{z_0})^\top}{c(z_0)}
+}_{\ba^\top}
+\underbrace{\left(\sum_{z_1} 
+\frac{o_1}{c(z_1)}\phi(\bu_{z_1})\phi(\bw_{z_1})^\top
+\right)}_{A_1}
+\underbrace{
+    \vphantom{\left(\sum_{z_1} 
+        \frac{o_1}{c(z_1)}\phi(\bu_{z_1})\phi(\bw_{z_1})^\top
+        \right)}
+    \sum_{z_2}o_2\phi(\bu_{z_2})
+}_{\bb},
+\end{aligned}
+\end{equation}
+where $o_t = p(x_t \mid z_t), \forall t$.
+By the distributivity of dot product and scalar multiplication, we are able to group terms involving each $z_t$.
+The cost of computing $A_1\in\R^{n\times n}$ is $O(|\mcZ|n^2)$, where $n$ is the dimension of the feature space.
+
+This extends to sequences of any length.
+For a sequence of length $|x|=T$, the evidence is as follows:
+\begin{equation}
+    p(x) = \ba^\top A_1 A_2 \cdots A_{T-1}\bb,
+\end{equation}
+with $\ba,\bb\in\R^n$, and all $A_t\in\R^{n\times n}$
+as a generalization of Equation~\ref{eqn:kernel-hmm-inference}.
+As a sequence of matrix vector multiplications,
+this expression takes time $O(Tn^2)$ to compute.
+In total, marginalization costs time $O(T|\mcZ|n^2)$ on a serial machine,
+as the cost of computing all of the $A_t$ dominates.\footnote{
+As is common when implementing the forward algorithm for HMMs, we perform these operations in log-space for numerical stability.
+}\footnote{
+We have essentially replaced the transition matrix, which has dimension $|\mcZ|\times|\mcZ|$, with a linear combination of the outer products $\phi(\bu_{z_t})\phi(\bw_{z_t})^\top \in \R^{n \times n}$.
+}
+We can therefore scale to a large number of states while retaining efficient inference by controlling the dimension of the feature space.
+
+\todo{emission sparsity?}
+
+\subsection*{Kernel Probabilistic Context-Free Grammars}

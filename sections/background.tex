@@ -1,0 +1,47 @@
+
+% General struct pred
+The goal of structured prediction is to model structured outputs.
+%Structured prediction tasks such as, language modeling, have recently been dominated primarily by large neural methods, which eschew explicit structure for flexibility.
+
+A structured output $x=(x_1, \dots, x_T)$ is a sequence of $T$ observed variables %with each $x_t \in \mcX$
+, for example words in a sentence.
+We also model latent structure $z$ \todo{not sure how to best introduce this so it is common to both HMM + PCFG. is a better strategy to just go into HMM, then PCFG and skip this intro?}, which may take various forms depending on the application and model.
+Structured models explicitly take into account correlations between variables by modeling the joint distribution $p(x,z)$.
+
+As we only observe $x$, we must optimize the evidence $p(x) = \sum_z p(x,z)$ by marginalizing over $z$ in order to train a structured model with latent variables. Even for simple models, performing this marginalization exactly takes time and space at least quadratic in $|\mcZ|$ which precludes scaling to large state spaces.
+
+% Models of interest
+We focus on two examples of structured models in particular:
+hidden Markov models and probabilistic context-free grammars.
+
+\subsection*{Hidden Markov Models}
+Hidden Markov models (HMMs) are classical sequence models
+defined by the following generative process: first, a sequence of discrete latent states $z = (z_1, \ldots,z_T)$ are chosen. Each state $z_t$ then emits a single observation $x_t$.
+This yields the joint distribution
+\begin{equation}
+\label{eqn:hmm}
+    p(x,z) = \prod_t p(z_t \mid z_{t-1})p(x_t\mid z_t),
+\end{equation}
+where $p(z_t \mid z_{t-1})$ is the transition distribution
+and $p(x_t \mid z_t)$ the observation distribution.
+Given an observed $x_t$, we refer to $p(x_t \mid z_t)$ as $o_t$.
+% only comes up much later in method, maybe name it there?
+
+A common method to parameterize these conditional distributions makes the following low rank assumption:
+Let $\bw_{z_t},\bu_{z_{t-1}}\in\R^d$ be embeddings of their respective states, and $\bu_{x_t}\in\R^d$ an observation embedding.
+The transition and observations distributions are then parameterized using softmax, with the distinguished starting state $z_0$:
+\begin{equation}
+\begin{aligned}
+p(z_1 \mid z_0) &\propto \exp(f_1(\bw_{z_0})^\top\bu_{z_1}),\\
+p(z_t \mid z_{t-1}) &\propto \exp(\bw_{z_{t-1}}^\top\bu_{z_t}),\\
+p(x_t \mid z_t) &\propto \exp(\bw_{z_t}^\top f_2(\bu_{x_t})),
+\end{aligned}
+\end{equation}
+where $f_1, f_2$ are MLPs with two residual layers (see Appendix~\ref{sec:mlp-param} for the full parameterization).
+
+In order to train an HMM, we must obtain the evidence of the observed words $x$ by marginalizing over all hidden states via $p(x) = \sum_z p(x,z)$.
+This marginalization can be performed in time $O(T|\mcZ|^2)$ via the forward algorithm.
+(give matrix form of forward algorithm) \citep{jaeger2000}
+Given the evidence $p(x)$, the parameters of an HMM can then be optimized via gradient ascent.
+
+

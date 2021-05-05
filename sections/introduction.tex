@@ -1,0 +1,31 @@
+
+% what is structured prediction
+Structured prediction tasks, such as language modeling and parsing, often require models to capture and learn complex dependencies, both observed and unobserved.
+One approach to structured prediction is to offload the burden of learning these dependencies to an expressive black-box \todo{neural?} model, often obtaining high accuracy at the cost of forgoing the ability to examine the learned dependencies.
+Another approach is to learn a structured model, where the dependencies are specified explicitly.
+\todo{More on what structured models are?}
+While structured models offer interpretability, this comes at a cost: an increase in model complexity comes with an associated increase in the cost of inference.
+
+% structured prediction: accuracy vs complexity tradeoff
+Indeed, a key component of structured prediction algorithms is balancing model expressivity with the computational cost of inference, since complex models are necessary to fit the large-scale datasets that are common in machine learning.
+Furthermore, incorporating latent variables, which increase models expressivity and are necessary for modeling unobserved phenomena, result in an even larger inferential burden.
+Much work in machine learning seeks to find a desirable point in the tradeoff between model complexity and cost of inference.
+
+% Recent work in computationally efficient attention
+However, there exist rare opportunities where one can reduce the complexity of inference while retaining accuracy.
+Recent work in computationally efficient neural attention models  has identified one such opportunity.
+The key ingredient in the breakthrough, a specific kernel parameterization, rewrites attention from a softmax to a series of matrix multiplications. Once rewritten as a matrix multiplication, the associative rule of matrix multiplication allows for the computation of attention in time linear in the length of a sequence at little to no cost in accuracy \citep{peng2021rfa,choromanski2020performer}.
+
+A similar kernel parameterization was used to approximate belief propagation in graphical models \citep{song2011kernelbp} for structured prediction. In the structured prediction setting, it is unclear how well 
+
+% highlight differences between attention and structured setting
+\todo{Clarify why it is not obvious this extends immediately to structured setting. Quality of attention is not as important to accuracy (is there a mean attention in transformers paper), since the model may learn to compensate. Is this different in structured prediction?}
+
+% contributions
+Inspired by the success of kernel parameterizations in attention-based neural networks, we extend them to the structured prediction setting.
+We find the application of kernelization is nontrivial in high dimensional structured models, and demonstrate an effective method for overcoming the shortcomings of kernelization by using multiple kernels within a single model.
+We evaluate our approach to kernelization on language modeling with hidden Markov models and unsupervised constituency parsing with probabilistic context-free grammars, where our method allows structured models to scale with little loss in accuracy.
+%We additionally identify the limitations of our kernel parameterizations in fitting high dimensional distributions
+
+
+\textcolor{red}{End with experimental result preview.}
